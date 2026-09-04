@@ -1,8 +1,8 @@
 import clsx from "clsx";
 import Nav from "@/app/components/Nav";
+import Hero from "@/app/components/Hero";
 
 const SECTIONS = [
-  { id: "home", label: "Home" },
   { id: "fleet", label: "Fleet" },
   { id: "trips", label: "Trips" },
   { id: "gallery", label: "Gallery" },
@@ -16,6 +16,7 @@ export default function Home() {
     <>
       <Nav />
       <main>
+        <Hero />
         {SECTIONS.map(({ id, label }, i) => {
           const isContact = id === "contact";
           const isHome = id === "home";
