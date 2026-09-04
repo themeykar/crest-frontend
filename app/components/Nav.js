@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import clsx from "clsx";
 
 function InstagramIcon({ size = 20, className }) {
@@ -118,9 +119,15 @@ export default function Nav() {
         <a
           href="#home"
           onClick={(e) => handleAnchorClick(e, "home")}
-          className="relative z-10 font-heading text-[1.25rem] font-bold text-navy tracking-tight"
+          className="relative z-10"
         >
-          Crest Boats
+          <Image
+            src="/logo.png"
+            alt="Crest Boats"
+            width={52}
+            height={52}
+            priority
+          />
         </a>
 
         {/* ── Desktop links (centered) ── */}

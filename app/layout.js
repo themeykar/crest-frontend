@@ -17,6 +17,9 @@ export const metadata = {
   title: "Crest Boats",
   description:
     "Boat rentals and jet ski experiences in Lagos, Nigeria. Book your coastal adventure today.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }) {
