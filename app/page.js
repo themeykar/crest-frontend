@@ -3,9 +3,9 @@ import Nav from "@/app/components/Nav";
 import Hero from "@/app/components/Hero";
 import Fleet from "@/app/components/Fleet";
 import Trips from "@/app/components/Trips";
+import Gallery from "@/app/components/Gallery";
 
 const SECTIONS = [
-  { id: "gallery", label: "Gallery" },
   { id: "testimonials", label: "Testimonials" },
   { id: "faqs", label: "FAQs" },
   { id: "contact", label: "Get in Touch" },
@@ -19,16 +19,17 @@ export default function Home() {
         <Hero />
         <Fleet />
         <Trips />
+        <Gallery />
         {SECTIONS.map(({ id, label }, i) => {
           const isContact = id === "contact";
           const isHome = id === "home";
 
-          // Alternate sand / white; contact section gets navy
+          // Alternate white / sand; contact section gets navy
           const bg = isContact
             ? "bg-navy"
             : i % 2 === 0
-              ? "bg-sand"
-              : "bg-white";
+              ? "bg-white"
+              : "bg-sand";
 
           const textColor = isContact ? "text-white" : "text-navy";
           const subtleColor = isContact ? "text-white/50" : "text-navy/40";
