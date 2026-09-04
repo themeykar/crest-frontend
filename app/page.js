@@ -2,9 +2,9 @@ import clsx from "clsx";
 import Nav from "@/app/components/Nav";
 import Hero from "@/app/components/Hero";
 import Fleet from "@/app/components/Fleet";
+import Trips from "@/app/components/Trips";
 
 const SECTIONS = [
-  { id: "trips", label: "Trips" },
   { id: "gallery", label: "Gallery" },
   { id: "testimonials", label: "Testimonials" },
   { id: "faqs", label: "FAQs" },
@@ -18,16 +18,17 @@ export default function Home() {
       <main>
         <Hero />
         <Fleet />
+        <Trips />
         {SECTIONS.map(({ id, label }, i) => {
           const isContact = id === "contact";
           const isHome = id === "home";
 
-          // Alternate white / sand; contact section gets navy
+          // Alternate sand / white; contact section gets navy
           const bg = isContact
             ? "bg-navy"
             : i % 2 === 0
-              ? "bg-white"
-              : "bg-sand";
+              ? "bg-sand"
+              : "bg-white";
 
           const textColor = isContact ? "text-white" : "text-navy";
           const subtleColor = isContact ? "text-white/50" : "text-navy/40";
