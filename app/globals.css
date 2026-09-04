@@ -43,3 +43,13 @@ h5,
 h6 {
   font-family: var(--font-heading);
 }
+
+/* ── Utilities ── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
