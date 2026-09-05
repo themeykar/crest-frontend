@@ -115,11 +115,16 @@ export default function Nav() {
       )}
     >
       <nav className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-5 lg:px-10">
-        {/* ── Logo ── */}
+        {/* ── Logo with Warm Sand Chip ── */}
         <a
           href="#home"
           onClick={(e) => handleAnchorClick(e, "home")}
-          className="relative z-10"
+          className={clsx(
+            "relative z-10 flex items-center justify-center shrink-0",
+            "p-1 rounded-xl bg-sand border border-navy/[0.08]",
+            "shadow-[0_2px_8px_rgba(18,32,63,0.06)]",
+            "transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          )}
         >
           <Image
             src="/logo.png"
@@ -127,6 +132,7 @@ export default function Nav() {
             width={52}
             height={52}
             priority
+            className="block"
           />
         </a>
 
