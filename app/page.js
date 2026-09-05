@@ -5,9 +5,9 @@ import Fleet from "@/app/components/Fleet";
 import Trips from "@/app/components/Trips";
 import Gallery from "@/app/components/Gallery";
 import Testimonials from "@/app/components/Testimonials";
+import Faqs from "@/app/components/Faqs";
 
 const SECTIONS = [
-  { id: "faqs", label: "FAQs" },
   { id: "contact", label: "Get in Touch" },
 ];
 
@@ -21,6 +21,7 @@ export default function Home() {
         <Trips />
         <Gallery />
         <Testimonials />
+        <Faqs />
         {SECTIONS.map(({ id, label }, i) => {
           const isContact = id === "contact";
           const isHome = id === "home";
