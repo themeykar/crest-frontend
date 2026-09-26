@@ -43,6 +43,7 @@ const INSTAGRAM_URL = "https://instagram.com/crestboats";
 export default function Nav() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isNavigatingAway, setIsNavigatingAway] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
 
   /* ── Observe hero to toggle nav background ── */
@@ -91,12 +92,142 @@ export default function Nav() {
     };
   }, [isMobileOpen]);
 
+  /* ── Ensure drawer visibility is restored whenever opened ── */
+  useEffect(() => {
+    if (isMobileOpen) {
+      setIsNavigatingAway(false);
+    }
+  }, [isMobileOpen]);
+
+  /* ── TEMPORARY DIAGNOSTIC-4: Scroll event listener & monkey-patching ── */
+  useEffect(() => {
+    // 1. Log scroll events with scrollY and performance.now()
+    const handleScroll = () => {
+      console.log(
+        `[DIAGNOSTIC scroll] t=${performance.now().toFixed(1)}ms | scrollY=${window.scrollY}`
+      );
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    // 2. Monkey-patch window.scrollTo and window.scroll
+    const originalScrollTo = window.scrollTo;
+    window.scrollTo = function (...args) {
+      console.warn(
+        `[DIAGNOSTIC scrollTo called] t=${performance.now().toFixed(1)}ms | args:`,
+        args
+      );
+      console.trace("[DIAGNOSTIC scrollTo trace]");
+      return originalScrollTo.apply(this, args);
+    };
+
+    const originalScroll = window.scroll;
+    window.scroll = function (...args) {
+      console.warn(
+        `[DIAGNOSTIC window.scroll called] t=${performance.now().toFixed(1)}ms | args:`,
+        args
+      );
+      console.trace("[DIAGNOSTIC window.scroll trace]");
+      return originalScroll.apply(this, args);
+    };
+
+    // 3. Monkey-patch Element.prototype.scrollIntoView
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (...args) {
+      console.warn(
+        `[DIAGNOSTIC scrollIntoView called] t=${performance.now().toFixed(1)}ms | target: <${this.tagName.toLowerCase()} id="${this.id}"> | args:`,
+        args
+      );
+      console.trace("[DIAGNOSTIC scrollIntoView trace]");
+      return originalScrollIntoView.apply(this, args);
+    };
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.scrollTo = originalScrollTo;
+      window.scroll = originalScroll;
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    };
+  }, []);
+
   const scrollToSection = useCallback((id) => {
-    // Restore scroll before navigating so scrollIntoView works
+    // 0. Instantly fade mobile drawer visually via Framer Motion without triggering layout reflow
+    setIsNavigatingAway(true);
+
+    console.log(`[scrollToSection] start for "${id}" at t=${performance.now().toFixed(1)}ms | scrollY=${window.scrollY}`);
+
+    // 1. Immediately unlock any scroll lock so scrolling is possible
     document.documentElement.style.overflow = "";
-    setIsMobileOpen(false);
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+
+    // 2. Override scroll-snap with !important
+    document.documentElement.style.setProperty("scroll-snap-type", "none", "important");
+
+    // 3. Verify computed style and log
+    const computedSnap = window.getComputedStyle(document.documentElement).scrollSnapType;
+    console.log("[scrollToSection] computed scrollSnapType:", computedSnap);
+
+    // 4. Unified completion handler: restores scroll-snap and closes mobile menu ONLY when settled
+    let settled = false;
+    let scrollIdleTimer = null;
+    let safetyTimeout = null;
+
+    const finalizeScroll = (trigger) => {
+      if (settled) return;
+      settled = true;
+
+      window.removeEventListener("scrollend", handleScrollEnd);
+      window.removeEventListener("scroll", handleScrollActivity);
+      if (scrollIdleTimer) clearTimeout(scrollIdleTimer);
+      if (safetyTimeout) clearTimeout(safetyTimeout);
+
+      console.log(`[scrollToSection] scroll settled via ${trigger} at t=${performance.now().toFixed(1)}ms | scrollY=${window.scrollY}`);
+
+      // Restore scroll-snap
+      document.documentElement.style.setProperty("scroll-snap-type", "", "");
+      // Close mobile drawer
+      setIsMobileOpen(false);
+      setIsNavigatingAway(false);
+    };
+
+    const handleScrollEnd = () => {
+      finalizeScroll("scrollend event");
+    };
+
+    const handleScrollActivity = () => {
+      // Whenever scroll is actively moving, reset the idle timer
+      if (scrollIdleTimer) clearTimeout(scrollIdleTimer);
+      scrollIdleTimer = setTimeout(() => {
+        finalizeScroll("scroll idle debounce (150ms)");
+      }, 150);
+    };
+
+    window.addEventListener("scrollend", handleScrollEnd, { once: true });
+    window.addEventListener("scroll", handleScrollActivity, { passive: true });
+
+    // Hard safety timeout (2000ms max)
+    safetyTimeout = setTimeout(() => {
+      finalizeScroll("safety-timeout-2000ms");
+    }, 2000);
+
+    // 5. Double-rAF deferral before calling scrollIntoView
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.getElementById(id);
+        if (!el) {
+          finalizeScroll("element-not-found");
+          return;
+        }
+
+        console.log(`[scrollToSection] calling scrollIntoView on #${id} at t=${performance.now().toFixed(1)}ms | scrollY=${window.scrollY}`);
+        el.scrollIntoView({ behavior: "smooth" });
+
+        // If target is already at the desired position (no scroll needed), settle promptly
+        setTimeout(() => {
+          if (!settled && Math.abs(el.getBoundingClientRect().top) < 10) {
+            finalizeScroll("already-at-target");
+          }
+        }, 200);
+      });
+    });
   }, []);
 
   const handleAnchorClick = (e, id) => {
@@ -105,15 +236,17 @@ export default function Nav() {
   };
 
   return (
-    <header
-      className={clsx(
-        "fixed top-0 left-0 right-0 z-40",
-        "transition-[background-color,box-shadow] duration-300 ease-out",
-        isScrolled
-          ? "bg-sand shadow-[0_1px_0_rgba(18,32,63,0.08)]"
-          : "bg-transparent"
-      )}
-    >
+    <header className="fixed top-0 left-0 right-0 z-40">
+      {/* ── Top Bar Background Layer (strictly 64px, does not paint behind drawer) ── */}
+      <div
+        className={clsx(
+          "absolute top-0 left-0 right-0 h-16 pointer-events-none -z-10",
+          "transition-[background-color,box-shadow] duration-300 ease-out",
+          isScrolled || (isMobileOpen && !isNavigatingAway)
+            ? "bg-sand shadow-[0_1px_0_rgba(18,32,63,0.08)]"
+            : "bg-transparent"
+        )}
+      />
       <nav className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-5 lg:px-10">
         {/* ── Logo with Warm Sand Chip ── */}
         <a
@@ -191,7 +324,10 @@ export default function Nav() {
 
         {/* ── Mobile toggle ── */}
         <button
-          onClick={() => setIsMobileOpen((prev) => !prev)}
+          onClick={() => {
+            setIsNavigatingAway(false);
+            setIsMobileOpen((prev) => !prev);
+          }}
           className="relative z-10 lg:hidden p-2 -mr-2"
           aria-label={isMobileOpen ? "Close menu" : "Open menu"}
           aria-expanded={isMobileOpen}
@@ -224,10 +360,20 @@ export default function Nav() {
         {isMobileOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{
+              opacity: isNavigatingAway ? 0 : 1,
+              height: "auto",
+            }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:hidden overflow-hidden border-t border-navy/5 bg-sand"
+            transition={{
+              duration: 0.25,
+              ease: [0.16, 1, 0.3, 1],
+              opacity: { duration: isNavigatingAway ? 0.08 : 0.25 },
+            }}
+            className={clsx(
+              "lg:hidden overflow-hidden border-t border-navy/5 bg-sand",
+              isNavigatingAway && "pointer-events-none"
+            )}
           >
             <div className="mx-auto max-w-[1400px] px-5 py-6 flex flex-col gap-1">
               {NAV_LINKS.map(({ label, id }) => {
